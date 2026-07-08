@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+.vercel
+
+# Credenciais e arquivo gerado — nunca vão para o git
+.env
+env.js
