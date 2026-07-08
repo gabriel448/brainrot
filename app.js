@@ -34,6 +34,7 @@ try {
 
 MEMBERS.forEach((m) => (activeTab[m.id] = "ativas"));
 
+initWhoami();
 renderSkeleton();
 loadTasks();
 
@@ -71,10 +72,10 @@ async function loadTasks() {
   }
 }
 
-async function addTask(memberId, title) {
+async function addTask(memberId, title, description, assignedBy) {
   const { error } = await db
     .from("tasks")
-    .insert({ member_id: memberId, title, done: false });
+    .insert({ member_id: memberId, title, description, assigned_by: assignedBy, done: false });
   if (error) { console.error(error); alert("Não foi possível adicionar a tarefa."); }
   else loadTasks();
 }
@@ -112,10 +113,7 @@ function renderSkeleton() {
         <button class="tab" data-tab="ativas">Ativas <span class="count"></span></button>
         <button class="tab" data-tab="concluidas">Concluídas <span class="count"></span></button>
       </div>
-      <form class="add">
-        <input type="text" placeholder="Nova tarefa…" maxlength="200" />
-        <button type="submit" title="Adicionar">+</button>
-      </form>
+      <button class="add-btn" type="button">＋ Nova tarefa</button>
       <ul class="list"></ul>`;
     boardsEl.appendChild(panel);
 
@@ -125,14 +123,7 @@ function renderSkeleton() {
         renderPanel(m);
       })
     );
-    panel.querySelector(".add").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const input = e.target.querySelector("input");
-      const title = input.value.trim();
-      if (!title) return;
-      input.value = "";
-      addTask(m.id, title);
-    });
+    panel.querySelector(".add-btn").addEventListener("click", () => openAddModal(m));
   });
 }
 
@@ -174,19 +165,130 @@ function taskEl(t) {
   li.className = "task" + (t.done ? " done" : "");
   li.innerHTML = `
     <input type="checkbox" ${t.done ? "checked" : ""} />
-    <div class="body">
+    <div class="body" title="Ver detalhes">
       <div class="title">${esc(t.title)}</div>
-      <div class="date">Adicionada em ${fmtDate(t.created_at)}</div>
     </div>
     <button class="trash" title="Remover">🗑️</button>`;
 
   li.querySelector("input").addEventListener("change", (e) =>
     toggleTask(t.id, e.target.checked)
   );
+  li.querySelector(".body").addEventListener("click", () => openDetailModal(t));
   li.querySelector(".trash").addEventListener("click", () => {
     if (confirm("Remover esta tarefa?")) deleteTask(t.id);
   });
   return li;
+}
+
+// --- "quem é você" ---------------------------------------------------------
+
+function initWhoami() {
+  const sel = document.getElementById("whoami");
+  sel.innerHTML =
+    '<option value="">— selecione —</option>' +
+    MEMBERS.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  sel.value = localStorage.getItem("currentUser") || "";
+  sel.addEventListener("change", () => localStorage.setItem("currentUser", sel.value));
+}
+
+function getCurrentUser() {
+  return document.getElementById("whoami").value || "";
+}
+
+// --- modais ----------------------------------------------------------------
+
+const overlay = document.getElementById("overlay");
+const modal = document.getElementById("modal");
+
+function showModal(html) {
+  modal.innerHTML = html;
+  overlay.classList.remove("hidden");
+  modal.querySelectorAll("[data-close], .modal-close").forEach((b) =>
+    b.addEventListener("click", closeModal)
+  );
+  const first = modal.querySelector("input, textarea");
+  if (first) first.focus();
+}
+
+function closeModal() {
+  overlay.classList.add("hidden");
+  modal.innerHTML = "";
+}
+
+overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+function openAddModal(member) {
+  showModal(`
+    <div class="modal-head" style="background:${member.color}">
+      <div>
+        <div class="modal-eyebrow">Nova tarefa para</div>
+        <div class="modal-title">${esc(member.name)}</div>
+      </div>
+      <button class="modal-close" aria-label="Fechar">✕</button>
+    </div>
+    <form class="modal-body" id="add-form">
+      <label class="field">Título
+        <input type="text" id="f-title" maxlength="200" required />
+      </label>
+      <label class="field">Descrição
+        <textarea id="f-desc" rows="4" maxlength="2000" placeholder="Detalhes da tarefa (opcional)"></textarea>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-close>Cancelar</button>
+        <button type="submit" class="btn" style="background:${member.color}">Adicionar</button>
+      </div>
+    </form>`);
+
+  document.getElementById("add-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const who = getCurrentUser();
+    if (!who) {
+      alert('Selecione quem é você no topo da página (campo "Você:") antes de adicionar.');
+      return;
+    }
+    const title = document.getElementById("f-title").value.trim();
+    if (!title) return;
+    const desc = document.getElementById("f-desc").value.trim();
+    addTask(member.id, title, desc, who);
+    closeModal();
+  });
+}
+
+function openDetailModal(t) {
+  const assignee = memberById(t.member_id);
+  const assigner = memberById(t.assigned_by);
+  const color = assignee ? assignee.color : "#6b7280";
+
+  showModal(`
+    <div class="modal-head" style="background:${color}">
+      <div>
+        <div class="modal-eyebrow">Tarefa de ${esc(assignee ? assignee.name : "?")}</div>
+        <div class="modal-title">${esc(t.title)}</div>
+      </div>
+      <button class="modal-close" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-desc">${t.description ? esc(t.description) : "<em>Sem descrição.</em>"}</div>
+      <dl class="detail-meta">
+        <div><dt>Atribuída para</dt><dd>${esc(assignee ? assignee.name : "?")}</dd></div>
+        <div><dt>Atribuída por</dt><dd>${esc(assigner ? assigner.name : (t.assigned_by || "—"))}</dd></div>
+        <div><dt>Adicionada em</dt><dd>${fmtDate(t.created_at)}</dd></div>
+        <div><dt>Status</dt><dd>${t.done ? "Concluída" : "Ativa"}</dd></div>
+      </dl>
+      <div class="modal-actions">
+        <button type="button" class="btn danger" id="d-del">🗑️ Remover</button>
+        <button type="button" class="btn ghost" data-close>Fechar</button>
+      </div>
+    </div>`);
+
+  document.getElementById("d-del").addEventListener("click", () => {
+    if (confirm("Remover esta tarefa?")) { deleteTask(t.id); closeModal(); }
+  });
+}
+
+function memberById(id) {
+  return MEMBERS.find((m) => m.id === id) || null;
 }
 
 // --- utilitários -----------------------------------------------------------

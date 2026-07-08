@@ -4,12 +4,18 @@
 
 create table if not exists public.tasks (
   id           uuid primary key default gen_random_uuid(),
-  member_id    text        not null,
+  member_id    text        not null,   -- painel/integrante dono da tarefa
   title        text        not null,
+  description  text,                    -- detalhes (só aparecem no modal)
+  assigned_by  text,                    -- id do integrante que atribuiu
   done         boolean     not null default false,
   created_at   timestamptz not null default now(),
   completed_at timestamptz
 );
+
+-- Caso a tabela já exista sem estas colunas, adiciona (idempotente):
+alter table public.tasks add column if not exists description text;
+alter table public.tasks add column if not exists assigned_by text;
 
 -- Ativa a segurança por linha e libera o acesso para o site (chave anon).
 -- Como é uma ferramenta interna de um time pequeno, liberamos tudo para o
