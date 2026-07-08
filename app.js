@@ -123,7 +123,9 @@ function renderSkeleton() {
         renderPanel(m);
       })
     );
-    panel.querySelector(".add-btn").addEventListener("click", () => openAddModal(m));
+    panel.querySelector(".add-btn").addEventListener("click", () =>
+      requireIdentity(() => openAddModal(m))
+    );
   });
 }
 
@@ -160,19 +162,19 @@ function renderPanel(m) {
   list.forEach((t) => ul.appendChild(taskEl(t)));
 }
 
+const TRASH_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+
 function taskEl(t) {
   const li = document.createElement("li");
   li.className = "task" + (t.done ? " done" : "");
   li.innerHTML = `
-    <input type="checkbox" ${t.done ? "checked" : ""} />
+    <button class="check ${t.done ? "checked" : ""}" role="checkbox" aria-checked="${t.done}" title="${t.done ? "Reabrir" : "Concluir"}"></button>
     <div class="body" title="Ver detalhes">
       <div class="title">${esc(t.title)}</div>
     </div>
-    <button class="trash" title="Remover">🗑️</button>`;
+    <button class="trash" title="Remover">${TRASH_SVG}</button>`;
 
-  li.querySelector("input").addEventListener("change", (e) =>
-    toggleTask(t.id, e.target.checked)
-  );
+  li.querySelector(".check").addEventListener("click", () => toggleTask(t.id, !t.done));
   li.querySelector(".body").addEventListener("click", () => openDetailModal(t));
   li.querySelector(".trash").addEventListener("click", () => {
     if (confirm("Remover esta tarefa?")) deleteTask(t.id);
@@ -183,16 +185,56 @@ function taskEl(t) {
 // --- "quem é você" ---------------------------------------------------------
 
 function initWhoami() {
-  const sel = document.getElementById("whoami");
-  sel.innerHTML =
-    '<option value="">— selecione —</option>' +
-    MEMBERS.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
-  sel.value = localStorage.getItem("currentUser") || "";
-  sel.addEventListener("change", () => localStorage.setItem("currentUser", sel.value));
+  updateWhoamiButton();
+  document.getElementById("whoami-btn").addEventListener("click", () => openIdentifyModal());
 }
 
 function getCurrentUser() {
-  return document.getElementById("whoami").value || "";
+  return localStorage.getItem("currentUser") || "";
+}
+
+function setCurrentUser(id) {
+  localStorage.setItem("currentUser", id);
+  updateWhoamiButton();
+}
+
+function updateWhoamiButton() {
+  const m = memberById(getCurrentUser());
+  document.getElementById("whoami-name").textContent = m ? m.name : "identifique-se";
+}
+
+// Garante que o usuário se identificou; se não, abre o modal e só então segue.
+function requireIdentity(next) {
+  if (getCurrentUser()) next();
+  else openIdentifyModal(next);
+}
+
+function openIdentifyModal(next) {
+  showModal(`
+    <div class="modal-head" style="background:linear-gradient(90deg,#ef4444,#3b82f6,#22c55e,#a855f7)">
+      <div>
+        <div class="modal-eyebrow">Identifique-se</div>
+        <div class="modal-title">Quem é você?</div>
+      </div>
+      <button class="modal-close" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="identify-hint">Escolha seu nome. Ele será usado para registrar quem atribuiu cada tarefa.</p>
+      <div class="identify-grid">
+        ${MEMBERS.map((m) => `
+          <button class="identify-btn" data-id="${m.id}" style="--accent:${m.color}">
+            <span class="dot" style="background:${m.color}"></span>${esc(m.name)}
+          </button>`).join("")}
+      </div>
+    </div>`);
+
+  modal.querySelectorAll(".identify-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      setCurrentUser(b.dataset.id);
+      closeModal();
+      if (next) next();
+    })
+  );
 }
 
 // --- modais ----------------------------------------------------------------
@@ -243,10 +285,7 @@ function openAddModal(member) {
   document.getElementById("add-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const who = getCurrentUser();
-    if (!who) {
-      alert('Selecione quem é você no topo da página (campo "Você:") antes de adicionar.');
-      return;
-    }
+    if (!who) { openIdentifyModal(() => openAddModal(member)); return; }
     const title = document.getElementById("f-title").value.trim();
     if (!title) return;
     const desc = document.getElementById("f-desc").value.trim();
@@ -269,15 +308,15 @@ function openDetailModal(t) {
       <button class="modal-close" aria-label="Fechar">✕</button>
     </div>
     <div class="modal-body">
-      <div class="detail-desc">${t.description ? esc(t.description) : "<em>Sem descrição.</em>"}</div>
       <dl class="detail-meta">
         <div><dt>Atribuída para</dt><dd>${esc(assignee ? assignee.name : "?")}</dd></div>
         <div><dt>Atribuída por</dt><dd>${esc(assigner ? assigner.name : (t.assigned_by || "—"))}</dd></div>
         <div><dt>Adicionada em</dt><dd>${fmtDate(t.created_at)}</dd></div>
-        <div><dt>Status</dt><dd>${t.done ? "Concluída" : "Ativa"}</dd></div>
       </dl>
+      <div class="field-label">Descrição</div>
+      <div class="detail-desc-box">${t.description ? esc(t.description) : "<em>Sem descrição.</em>"}</div>
       <div class="modal-actions">
-        <button type="button" class="btn danger" id="d-del">🗑️ Remover</button>
+        <button type="button" class="btn danger" id="d-del">${TRASH_SVG} Remover</button>
         <button type="button" class="btn ghost" data-close>Fechar</button>
       </div>
     </div>`);

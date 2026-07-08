@@ -25,15 +25,17 @@ body {
 }
 .topbar h1 { font-size: 20px; }
 .topbar-right { display: flex; align-items: center; gap: 16px; }
-.whoami { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.whoami select {
+.whoami-btn {
   background: var(--panel-2);
-  color: var(--text);
+  color: var(--muted);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 5px 8px;
+  border-radius: 999px;
+  padding: 6px 14px;
   font-size: 13px;
+  cursor: pointer;
 }
+.whoami-btn:hover { border-color: #6b7280; }
+.whoami-btn strong { color: var(--text); font-weight: 700; }
 .status { font-size: 13px; color: var(--muted); }
 .status.ok { color: #22c55e; }
 .status.err { color: #ef4444; }
@@ -103,7 +105,26 @@ body {
   border-radius: 8px;
   padding: 9px 10px;
 }
-.task input[type="checkbox"] { width: 17px; height: 17px; margin-top: 2px; cursor: pointer; accent-color: var(--accent, #666); flex-shrink: 0; }
+.task .check {
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  padding: 0;
+  border: 2px solid var(--accent, #666);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.task .check.checked { background: var(--accent, #666); }
+.task .check.checked::after {
+  content: "";
+  width: 5px; height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translateY(-1px);
+}
 .task .body { flex: 1; min-width: 0; cursor: pointer; }
 .task .title { font-size: 14px; word-break: break-word; }
 .task .body:hover .title { text-decoration: underline; }
@@ -111,13 +132,16 @@ body {
 .task .trash {
   background: transparent;
   border: none;
-  color: var(--muted);
+  color: #ef4444;
   cursor: pointer;
-  font-size: 15px;
-  padding: 2px 4px;
+  padding: 2px;
   flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  opacity: .75;
 }
-.task .trash:hover { color: #ef4444; }
+.task .trash:hover { opacity: 1; }
+.task .trash svg { display: block; }
 
 .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 16px 0; }
 
@@ -182,13 +206,45 @@ body {
 }
 .field input:focus, .field textarea:focus { outline: none; border-color: #6b7280; }
 
-.detail-desc { font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-.detail-desc em { color: var(--muted); }
-
-.detail-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.detail-meta > div { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.detail-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.detail-meta > div { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; min-width: 0; }
 .detail-meta dt { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
-.detail-meta dd { font-size: 14px; margin-top: 2px; }
+.detail-meta dd { font-size: 14px; margin-top: 2px; word-break: break-word; }
+
+.field-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.detail-desc-box {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-height: 130px;
+  max-height: 40vh;
+  overflow: auto;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.detail-desc-box em { color: var(--muted); }
+
+/* modal de identificação */
+.identify-hint { font-size: 14px; color: var(--muted); }
+.identify-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.identify-btn {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent, #666);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.identify-btn:hover { background: color-mix(in srgb, var(--accent, #666) 14%, var(--panel-2)); }
+.identify-btn .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.btn.danger svg { vertical-align: -3px; margin-right: 4px; }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .btn {
