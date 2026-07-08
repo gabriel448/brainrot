@@ -176,9 +176,7 @@ function taskEl(t) {
 
   li.querySelector(".check").addEventListener("click", () => toggleTask(t.id, !t.done));
   li.querySelector(".body").addEventListener("click", () => openDetailModal(t));
-  li.querySelector(".trash").addEventListener("click", () => {
-    if (confirm("Remover esta tarefa?")) deleteTask(t.id);
-  });
+  li.querySelector(".trash").addEventListener("click", () => confirmDelete(t));
   return li;
 }
 
@@ -260,6 +258,42 @@ function closeModal() {
 overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
 
+function openConfirmModal({ title, message, confirmLabel, onConfirm, onCancel }) {
+  showModal(`
+    <div class="modal-head" style="background:#ef4444">
+      <div>
+        <div class="modal-eyebrow">Confirmação</div>
+        <div class="modal-title">${esc(title)}</div>
+      </div>
+      <button class="modal-close" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">${message}</p>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" id="c-cancel">Cancelar</button>
+        <button type="button" class="btn solid-danger" id="c-ok">${esc(confirmLabel || "Remover")}</button>
+      </div>
+    </div>`);
+
+  document.getElementById("c-cancel").addEventListener("click", () => {
+    if (onCancel) onCancel(); else closeModal();
+  });
+  document.getElementById("c-ok").addEventListener("click", () => {
+    closeModal();
+    onConfirm();
+  });
+}
+
+function confirmDelete(t, onCancel) {
+  openConfirmModal({
+    title: "Remover tarefa?",
+    message: `A tarefa <b>"${esc(t.title)}"</b> será excluída permanentemente. Esta ação não pode ser desfeita.`,
+    confirmLabel: "Remover",
+    onConfirm: () => deleteTask(t.id),
+    onCancel,
+  });
+}
+
 function openAddModal(member) {
   showModal(`
     <div class="modal-head" style="background:${member.color}">
@@ -321,9 +355,9 @@ function openDetailModal(t) {
       </div>
     </div>`);
 
-  document.getElementById("d-del").addEventListener("click", () => {
-    if (confirm("Remover esta tarefa?")) { deleteTask(t.id); closeModal(); }
-  });
+  document.getElementById("d-del").addEventListener("click", () =>
+    confirmDelete(t, () => openDetailModal(t))
+  );
 }
 
 function memberById(id) {
