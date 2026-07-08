@@ -16,10 +16,21 @@ if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
   setStatus("faltam credenciais (rode: npm run build)", "err");
 }
 
-const supabase = window.supabase.createClient(
-  window.SUPABASE_URL,
-  window.SUPABASE_ANON_KEY
-);
+if (!window.supabase) {
+  setStatus("Supabase JS não carregou (sem internet?)", "err");
+  throw new Error("supabase-js CDN não carregou");
+}
+
+let db;
+try {
+  db = window.supabase.createClient(
+    window.SUPABASE_URL,
+    window.SUPABASE_ANON_KEY
+  );
+} catch (e) {
+  setStatus("credenciais inválidas: " + e.message, "err");
+  throw e;
+}
 
 MEMBERS.forEach((m) => (activeTab[m.id] = "ativas"));
 
@@ -27,7 +38,7 @@ renderSkeleton();
 loadTasks();
 
 // Sincronização em tempo real entre os integrantes
-supabase
+db
   .channel("tarefas")
   .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => loadTasks())
   .subscribe();
@@ -35,23 +46,33 @@ supabase
 // --- dados -----------------------------------------------------------------
 
 async function loadTasks() {
-  const { data, error } = await supabase
-    .from("tasks")
-    .select("*")
-    .order("created_at", { ascending: true });
+  try {
+    const { data, error } = await db
+      .from("tasks")
+      .select("*")
+      .order("created_at", { ascending: true });
 
-  if (error) {
-    setStatus("erro ao carregar", "err");
-    console.error(error);
-    return;
+    if (error) {
+      // Erro vindo do banco (ex.: tabela não existe → rode o schema.sql)
+      console.error(error);
+      const hint = /relation .*tasks.* does not exist|not exist/i.test(error.message || "")
+        ? "tabela não existe — rode o schema.sql no Supabase"
+        : (error.message || "erro ao carregar");
+      setStatus(hint, "err");
+      return;
+    }
+    tasks = data || [];
+    setStatus("online", "ok");
+    renderAll();
+  } catch (e) {
+    // Falha de rede (URL errada, projeto pausado, sem internet, CORS…)
+    console.error("Falha ao conectar no Supabase:", e);
+    setStatus("falha de conexão — veja o console (F12)", "err");
   }
-  tasks = data || [];
-  setStatus("online", "ok");
-  renderAll();
 }
 
 async function addTask(memberId, title) {
-  const { error } = await supabase
+  const { error } = await db
     .from("tasks")
     .insert({ member_id: memberId, title, done: false });
   if (error) { console.error(error); alert("Não foi possível adicionar a tarefa."); }
@@ -59,7 +80,7 @@ async function addTask(memberId, title) {
 }
 
 async function toggleTask(id, done) {
-  const { error } = await supabase
+  const { error } = await db
     .from("tasks")
     .update({ done, completed_at: done ? new Date().toISOString() : null })
     .eq("id", id);
@@ -68,7 +89,7 @@ async function toggleTask(id, done) {
 }
 
 async function deleteTask(id) {
-  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  const { error } = await db.from("tasks").delete().eq("id", id);
   if (error) console.error(error);
   else loadTasks();
 }
