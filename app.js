@@ -174,7 +174,13 @@ function taskEl(t) {
     </div>
     <button class="trash" title="Remover">${TRASH_SVG}</button>`;
 
-  li.querySelector(".check").addEventListener("click", () => toggleTask(t.id, !t.done));
+  const check = li.querySelector(".check");
+  check.addEventListener("click", () => {
+    if (li.classList.contains("leaving")) return;   // evita clique duplo
+    check.classList.toggle("checked", !t.done);      // feedback imediato do ✓
+    li.classList.add("leaving");                     // anima a task saindo
+    setTimeout(() => toggleTask(t.id, !t.done), 300);
+  });
   li.querySelector(".body").addEventListener("click", () => openDetailModal(t));
   li.querySelector(".trash").addEventListener("click", () => confirmDelete(t));
   return li;
