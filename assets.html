@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assets 3D — Projeto Roblox</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>🧊 Assets 3D</h1>
+      <nav class="mainnav">
+        <a href="index.html">Tarefas</a>
+        <a href="assets.html" class="active">Assets 3D</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <button id="new-asset" class="btn" type="button">＋ Novo Asset</button>
+      <span id="status" class="status">conectando…</span>
+    </div>
+  </header>
+
+  <main class="assets-page">
+    <section class="filters" id="filters">
+      <div class="filter-group">
+        <span class="lbl">Área</span>
+        <select id="f-area"></select>
+      </div>
+      <div class="filter-group">
+        <span class="lbl">Status</span>
+        <div class="chips" id="f-status"></div>
+      </div>
+      <div class="filter-group">
+        <span class="lbl">Prioridade</span>
+        <div class="chips" id="f-priority"></div>
+      </div>
+    </section>
+
+    <div id="asset-list" class="asset-list"></div>
+  </main>
+
+  <!-- Modal reutilizável -->
+  <div id="overlay" class="overlay hidden">
+    <div id="modal" class="modal" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="env.js"></script>
+  <script src="config.js"></script>
+  <script src="assets.js"></script>
+</body>
+</html>

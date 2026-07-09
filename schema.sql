@@ -32,3 +32,34 @@ create policy "acesso total anon"
 
 -- Necessário para a sincronização em tempo real
 alter publication supabase_realtime add table public.tasks;
+
+
+-- ============================================================
+--  ASSETS 3D  (tela de gerenciamento dos modelos do jogo)
+-- ============================================================
+
+create table if not exists public.assets (
+  id          uuid        primary key default gen_random_uuid(),
+  name        text        not null,
+  area        text,                                  -- ex: 'Área 1 - Madeira'
+  category    text,                                  -- ex: 'Base/Cenário'
+  priority    text        not null default 'Média',  -- Alta | Média | Baixa
+  status      text        not null default 'Não iniciado', -- Não iniciado | Fazendo | Revisão | Pronto
+  asset_id    text,                                  -- rbxassetid (quando pronto)
+  assigned_to text,                                  -- responsável
+  notes       text,                                  -- observações livres
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+alter table public.assets enable row level security;
+
+drop policy if exists "acesso total anon" on public.assets;
+create policy "acesso total anon"
+  on public.assets
+  for all
+  to anon
+  using (true)
+  with check (true);
+
+alter publication supabase_realtime add table public.assets;

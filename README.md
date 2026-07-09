@@ -1,9 +1,13 @@
 # 🎮 Quadro de Tarefas — Projeto Roblox
 
-Site simples para gerenciar tarefas entre os 4 integrantes do projeto.
-Cada integrante tem um painel com **nome + função**, uma aba de **tarefas ativas** e
-outra de **concluídas**. Qualquer um pode adicionar tarefa em qualquer painel,
-marcar como concluída (vai pra aba "Concluídas") ou remover pela lixeira.
+Site simples para o time do projeto, com duas telas (menu no topo):
+
+- **Tarefas** (`index.html`) — um painel por integrante (**nome + função**), com abas
+  de **ativas** e **concluídas**. Qualquer um adiciona/conclui/remove tarefa.
+- **Assets 3D** (`assets.html`) — lista dos modelos a criar, em cards agrupados por
+  **área** e **categoria**, com badges de **status** e **prioridade**, filtros,
+  barra de progresso por área e um modal para criar/editar/excluir cada asset.
+
 Tudo sincroniza em tempo real via Supabase.
 
 ## Como colocar no ar (3 passos)
